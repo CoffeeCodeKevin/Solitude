@@ -160,7 +160,7 @@ class Game extends React.Component {
           seen: false,
           solid: false,
           type: 'empty',
-          fill: 'black'
+          fill: 'white'
         });
       }
     }
