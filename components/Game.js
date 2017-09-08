@@ -160,7 +160,7 @@ class Game extends React.Component {
           seen: false,
           solid: false,
           type: 'empty',
-          fill: 'white'
+          fill: 'black'
         });
       }
     }
@@ -177,8 +177,9 @@ class Game extends React.Component {
     const roomsToGen = this.getRandInt(8, 12);
     const enemiesToGen = this.getRandInt(10, 20);
     const treasureToGen = this.getRandInt(3, 8);
-    const maxRoomSize = 12;
-    const minRoomSize = 4;
+    const maxRoomSize = 9;
+    const minRoomSize = 6;
+    let rmCenter = [];
     let rooms = [];
     let map = [];
 
@@ -195,9 +196,9 @@ class Game extends React.Component {
 
     // Simple algorithms to check two rooms to see if they collide.
     const detectCollision = (toCheck) => {
-      for (let k = 0; k < rooms.length; k++) {
-        if (!((toCheck.x + toCheck.w < rooms[k].x) || (toCheck.x > rooms[k].x + rooms[k].w) ||
-        (toCheck.y + toCheck.h < rooms[k].y) || (toCheck.y > rooms[k].y + rooms[k].h))) {
+      for (let k = 0; k < rmCenter.length; k++) {
+        if (!((toCheck.x + toCheck.w < rmCenter[k].x) || (toCheck.x > rmCenter[k].x + rmCenter[k].w) ||
+        (toCheck.y + toCheck.h < rmCenter[k].y) || (toCheck.y > rmCenter[k].y + rmCenter[k].h))) {
           return true;
         }
         return false;
@@ -205,7 +206,7 @@ class Game extends React.Component {
     };
 
     // Generate the first room.
-    rooms.push(generateRoom());
+    rmCenter.push(generateRoom());
 
     // Create rooms up to the set number of rooms.
     for (let i = 1; i < roomsToGen; i++) {
@@ -216,12 +217,58 @@ class Game extends React.Component {
         newRoom = generateRoom();
       }
       // Add the room once collisions are no longer detected.
-      rooms.push(newRoom);
+      rmCenter.push(newRoom);
     }
 
-    rooms.map((room) => {
+
+
+    rmCenter.map((room) => {
+      const x = room.x;
+      const y = room.y;
+      let startX;
+      let startY;
+      let endX;
+      let endY;
+      let tmpRoom = [];
+
+      if (room.w % 2 === 0) {
+         startX = room.x - ((room.w / 2) - 1);
+         endX = room.x + (room.w / 2);
+      } else if (room.w % 2 !== 0) {
+         startX = room.x - ((room.w / 2) - 0.5);
+         endX = room.x + ((room.w / 2) - 0.5);
+      }
+      if (room.h % 2 === 0 ) {
+         startY = room.y - ((room.h /2) - 1);
+         endY = room.y + (room.h / 2);
+      } else if (room.h % 2 !== 0) {
+         startY = room.y - ((room.h / 2) - 0.5);
+         endY = room.y + ((room.h / 2) - 0.5);
+      }
+
+      startX = startX > 0 ? startX : 0;
+      endX = endX < grid.length ? endX : 0;
+      startY = startY > 0 ? startY : 0;
+      endY = endY < grid.length ? endX : 0;
+
+      for (let i = startY; i < endY; i++) {
+        tmpRoom.push(grid[i].slice(startX, endX));
+      }
+      rooms.push(tmpRoom);
 
     });
+
+    rooms.map((room) => {
+      const testFill = window.Konva.Util.getRandomColor();
+      room.map((row) => {
+        row.map((tile) => {
+          const x = tile.x;
+          const y = tile.y;
+          grid[y][x].contains = 'floor';
+          grid[y][x].fill = testFill;
+        })
+      })
+    })
 
     // REMOVE ON COMPLETION
     let newObj = JSON.parse(JSON.stringify(this.state.interactables));

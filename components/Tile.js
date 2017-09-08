@@ -14,7 +14,7 @@ class Tile extends React.Component {
       <Rect
         height={this.props.tileHeight}
         width={this.props.tileWidth}
-        fill={this.props.tile.seen ? this.props.tile.fill : '#2b2b2b'}
+        fill={this.props.tile.fill}
         stroke={'black'}
         strokeWidth={0.3}
         x={this.props.tileWidth * this.props.tile.x}
