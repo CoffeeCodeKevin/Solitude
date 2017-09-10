@@ -220,8 +220,6 @@ class Game extends React.Component {
       rmCenter.push(newRoom);
     }
 
-
-
     rmCenter.map((room) => {
       const x = room.x;
       const y = room.y;

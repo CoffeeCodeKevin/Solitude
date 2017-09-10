@@ -14,10 +14,6 @@ improve, with either this project or just my code in general.
 
 ## Changelist
 
-### 1.0.2 09/10/2017
-- Changed project structure
-- Improved upon room generation somewhat, looking into problems with collision detection
-
 ### 1.0.1 - 09/08/2017
 - Added basic generation of rooms
 - Improved upon existing rendering and structure to code
