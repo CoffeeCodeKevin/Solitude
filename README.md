@@ -14,6 +14,11 @@ improve, with either this project or just my code in general.
 
 ## Changelist
 
+### 1.0.2 09/14/2017
+- Room generation seems to be fully working with no overlaps
+- Allows random spawning of player in the center of a generated room
+- Fixed edge check to ensure rooms do not spawn on the edge of the map
+
 ### 1.0.1 - 09/08/2017
 - Added basic generation of rooms
 - Improved upon existing rendering and structure to code

@@ -147,7 +147,7 @@ class Game extends React.Component {
 
   // Creates the initial map, then uses a series of functions
   // to generate rooms and then populate the map.
-  renderMap() {
+  async renderMap() {
     let newFloor = [];
     const size = this.state.mapSize;
 
@@ -165,8 +165,8 @@ class Game extends React.Component {
       }
     }
 
-    newFloor = this.fillMap(newFloor);
-    newFloor = this.lightTiles(newFloor, this.state.interactables.player);
+    newFloor = await this.fillMap(newFloor);
+    newFloor = await this.lightTiles(newFloor, this.state.interactables.player);
     this.setState({floorPlan: newFloor});
   }
 
@@ -174,39 +174,44 @@ class Game extends React.Component {
   fillMap(grid) {
     const width = this.state.mapSize;
     const height = this.state.mapSize;
-    const roomsToGen = this.getRandInt(8, 12);
+    const roomsToGen = this.getRandInt(12, 17);
     const enemiesToGen = this.getRandInt(10, 20);
     const treasureToGen = this.getRandInt(3, 8);
-    const maxRoomSize = 9;
+    const maxRoomSize = 10;
     const minRoomSize = 6;
-    let rmCenter = [];
+    let rmParams = [];
     let rooms = [];
-    let map = [];
 
     // Simply generate a room with a set width, height, x-coord and y-coord,
     // given the set parameters.
     const generateRoom = (() => {
+      const h = this.getRandInt(minRoomSize, maxRoomSize);
+      const w = this.getRandInt(minRoomSize, maxRoomSize);
+
       return {
         w: this.getRandInt(minRoomSize, maxRoomSize),
         h: this.getRandInt(minRoomSize, maxRoomSize),
-        x: this.getRandInt(1, width - maxRoomSize - 1),
-        y: this.getRandInt(1, height - maxRoomSize - 1)
+        x: this.getRandInt(1 + Math.ceil(w / 2), width - Math.ceil(w / 2) - 1),
+        y: this.getRandInt(1 + Math.ceil(h / 2), height - Math.ceil(h / 2) - 1)
       };
     });
 
-    // Simple algorithms to check two rooms to see if they collide.
-    const detectCollision = (toCheck) => {
-      for (let k = 0; k < rmCenter.length; k++) {
-        if (!((toCheck.x + toCheck.w < rmCenter[k].x) || (toCheck.x > rmCenter[k].x + rmCenter[k].w) ||
-        (toCheck.y + toCheck.h < rmCenter[k].y) || (toCheck.y > rmCenter[k].y + rmCenter[k].h))) {
-          return true;
+    // Simple algorithm to check two rooms to see if they collide.
+    const detectCollision = (room1) => {
+      for (let k = 0; k < rmParams.length; k++) {
+        let room2 = rmParams[k];
+        if (room1.x < room2.x + room2.w + 2 &&
+          room1.x + room1.w + 2 > room2.x &&
+          room1.y < room2.y + room2.h + 2 &&
+          room1.h + room1.y + 2 > room2.y) {
+            return true;
         }
-        return false;
       }
+      return false;
     };
 
     // Generate the first room.
-    rmCenter.push(generateRoom());
+    rmParams.push(generateRoom());
 
     // Create rooms up to the set number of rooms.
     for (let i = 1; i < roomsToGen; i++) {
@@ -217,10 +222,12 @@ class Game extends React.Component {
         newRoom = generateRoom();
       }
       // Add the room once collisions are no longer detected.
-      rmCenter.push(newRoom);
+      rmParams.push(newRoom);
     }
 
-    rmCenter.map((room) => {
+    // Takes the generated room parameters and creates an actual room
+    // on the grid out of them.
+    rmParams.map((room) => {
       const x = room.x;
       const y = room.y;
       let startX;
@@ -244,37 +251,40 @@ class Game extends React.Component {
          endY = room.y + ((room.h / 2) - 0.5);
       }
 
-      startX = startX > 0 ? startX : 0;
-      endX = endX < grid.length ? endX : 0;
-      startY = startY > 0 ? startY : 0;
-      endY = endY < grid.length ? endX : 0;
-
       for (let i = startY; i < endY; i++) {
         tmpRoom.push(grid[i].slice(startX, endX));
       }
-      rooms.push(tmpRoom);
 
+      rooms.push(tmpRoom);
     });
 
+    // Fills the now generated rooms on the map and defines them as floor tiles.
     rooms.map((room) => {
-      const testFill = window.Konva.Util.getRandomColor();
-      room.map((row) => {
-        row.map((tile) => {
+      room.map((row, i) => {
+        row.map((tile, j) => {
           const x = tile.x;
           const y = tile.y;
+
           grid[y][x].contains = 'floor';
-          grid[y][x].fill = testFill;
+          grid[y][x].fill = 'white';
         })
       })
-    })
+    });
 
-    // REMOVE ON COMPLETION
+    // TODO Generate perfect maze with Prim's Algorithm, then remove the redundant
+    // dead ends to allow for a more random, flowing corridor system. After that,
+    // pick a random wall at a room to connect to a corridor.
+
+    // Starts the player in the center of a random room.
+    // TODO: Preferably have this happen in a separate function that can
+    // allow set spawns if I want them for the boss floor or anything else.
     let newObj = JSON.parse(JSON.stringify(this.state.interactables));
-    newObj.player.x = 3;
-    newObj.player.y = 4;
+    const spawnRoom = rmParams[this.getRandInt(0, rmParams.length-1)];
+    newObj.player.x = spawnRoom.x;
+    newObj.player.y = spawnRoom.y;
     this.setState({interactables: newObj});
+
     return grid;
-    // REMOVE ON COMPLETION
   }
 
   // Given a grid to work with, causes the player to
