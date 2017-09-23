@@ -1,7 +1,7 @@
 import 'babel-polyfill';
 import React from 'react';
 import {Stage, Layer} from 'react-konva';
-import PF from 'pathfinding';
+import {Grid, BiDijkstraFinder} from 'pathfinding';
 
 import Floor from './Floor';
 import Player from './Player';
@@ -192,12 +192,14 @@ class Game extends React.Component {
     const treasureToGen = this.getRandInt(3, 8);
     const maxRoomSize = 10;
     const minRoomSize = 6;
+    const hallDensity = 1;
     let rmParams = [];
     let rooms = [];
+    let pathfindStarts = {};
 
     // Simply generate a room with a set width, height, x-coord and y-coord,
     // given the set parameters.
-    const generateRoom = (() => {
+    const generateRoom = ((id) => {
       const h = this.getRandInt(minRoomSize, maxRoomSize);
       const w = this.getRandInt(minRoomSize, maxRoomSize);
 
@@ -272,21 +274,122 @@ class Game extends React.Component {
     });
 
     // Fills the now generated rooms on the map and defines them as floor tiles.
-    rooms.map((room) => {
+    rooms.map((room, rmId) => {
+      // Allows identification of room attached to pathfindStarts
+
+      pathfindStarts[rmId] = { walls: [], closest: [] }
+
       room.map((row, i) => {
         row.map((tile, j) => {
           const x = tile.x;
           const y = tile.y;
           grid[y][x].solid = false;
           grid[y][x].fill = 'white';
+
+          // Allows pathfinding algorithm to skip pathfindStarts of rooms
+          // and to pick a random wall to path from.
+          if (grid[y - 1][x] !== undefined) {
+            if (i === 0) {
+              grid[y - 1][x].wall = true;
+              pathfindStarts[rmId].walls.push({x: x, y: y - 1});
+            }
+          }
+
+          if (grid[y + 1][x] !== undefined) {
+            if (i === room.length - 1) {
+              grid[y + 1][x].wall = true;
+              pathfindStarts[rmId].walls.push({x: x, y: y + 1})
+            }
+          }
+
+          if (grid[y][x - 1] !== undefined) {
+            if (j === 0) {
+              grid[y][x - 1].wall = true;
+              pathfindStarts[rmId].walls.push({x: x - 1, y: y})
+            }
+          }
+
+          if (grid[y][x + 1] !== undefined) {
+            if (j === row.length - 1) {
+              grid[y][x + 1].wall = true;
+              pathfindStarts[rmId].walls.push({x: x + 1, y: y})
+            }
+          }
         })
       })
     });
 
-    // TODO Use Dijkstra's algorithm to solve the fastest route
-    // between two points, somehow assign weight to various points from
-    // rooms.
+    // Take x random walls from pathfindStarts, where x is the set density and
+    // remove all other walls from each room id.
+    // This determines how many starting positions the pathfinder will use from
+    // each room.
 
+    for (let i = 0; i < roomsToGen; i++) {
+      const shuffle = pathfindStarts[i].walls.sort(() => .5 - Math.random());
+      let random = shuffle.slice(0, hallDensity);
+      pathfindStarts[i].walls = random;
+    }
+
+    // Find x closest rooms to each given room, where x is the
+    // hall density that is set.
+    // PS: I know this is a mess, I wish I knew a better way to do this.
+
+    for (let i = 0; i < roomsToGen; i++) {
+      const startPoints = pathfindStarts[i].walls;
+      for (let k = 0; k < hallDensity; k++) {
+        const stPoint = startPoints[k];
+        let closestPoint = null;
+        let closestDistance = 1000;
+        for (let j = 0; j < roomsToGen; j++) {
+          const endPoint = pathfindStarts[j].walls[k];
+          if (stPoint == endPoint) {
+            continue;
+          }
+
+          const distance = Math.abs(stPoint.x - endPoint.x) + Math.abs(stPoint.y - endPoint.y);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPoint = endPoint;
+          }
+        }
+        pathfindStarts[i].closest.push(closestPoint);
+      }
+    }
+
+    // Use Dijkstra's algorithm to connect each room to it's x closest rooms,
+    // where x is equal to the hall density that is set.
+    let matrix = [];
+    grid.map((row, i) => {
+      let rowMap = []
+      row.map((tile, k) => {
+        rowMap.push(tile.solid && !tile.wall ? 0 : 1)
+      });
+      matrix.push(rowMap)
+    });
+
+    const pfGrid = new Grid(matrix);
+    const finder = new BiDijkstraFinder();
+
+    // TODO This is janky / non-functional currently. Fix.
+    for (let i = 0; i < roomsToGen; i++) {
+      const startPoints = pathfindStarts[i].walls;
+      const endPoints = pathfindStarts[i].closest;
+      for (let k = 0; k < startPoints.length; k++) {
+        const x1 = startPoints[k].x;
+        const x2 = endPoints[k].x;
+        const y1 = startPoints[k].y;
+        const y2 = startPoints[k].y;
+        const path = finder.findPath(x1, y1, x2, y2, pfGrid);
+        for (let j = 0; j < path.length; j++) {
+          const x = path[j][0];
+          const y = path[j][1];
+
+          grid[y][x].solid = true;
+          pfGrid.setWalkableAt(x, y, false);
+          grid[y][x].fill = 'white';
+        }
+      }
+    }
 
     // Starts the player in the center of a random room.
     const spawnRoom = rmParams[this.getRandInt(0, rmParams.length-1)];

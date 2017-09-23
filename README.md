@@ -14,10 +14,17 @@ improve, with either this project or just my code in general.
 
 ## Changelist
 
+### 1.0.3 09/23/2017
+- Defined the walls of each room
+- Found a pathfinding algorithm that seemed fast enough to be workable
+- Fixed the function that keeps the canvas size correct
+- Separated spawn functionality from map generation
+- Map now generates hallways, but not correctly.
+
 ### 1.0.2 09/14/2017
 - Room generation seems to be fully working with no overlaps
 - Allows random spawning of player in the center of a generated room
-- Fixed edge check to ensure rooms do not spawn on the edge of the map
+- Fixed edge check to ensure rooms do not spawn with walls outside the edge of the map
 
 ### 1.0.1 - 09/08/2017
 - Added basic generation of rooms
