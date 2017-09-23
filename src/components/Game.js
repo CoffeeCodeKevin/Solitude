@@ -1,6 +1,7 @@
 import 'babel-polyfill';
 import React from 'react';
 import {Stage, Layer} from 'react-konva';
+import PF from 'pathfinding';
 
 import Floor from './Floor';
 import Player from './Player';
@@ -83,34 +84,45 @@ class Game extends React.Component {
   // Also allows player to move.
   async tickBoard(p_direction) {
     let newObj = JSON.parse(JSON.stringify(this.state.interactables));
-    let updatedMap = JSON.parse(JSON.stringify(this.state.floorPlan));
+    let updatedFloor = JSON.parse(JSON.stringify(this.state.floorPlan));
     const size = this.state.mapSize;
 
-    newObj.player = this.detectObjectCollision(newObj.player, p_direction, size);
-    updatedMap = this.lightTiles(updatedMap, newObj.player);
+    newObj = this.detectObjectCollision(newObj, updatedFloor, p_direction, size);
+    updatedFloor = this.lightTiles(updatedFloor, newObj.player);
 
     await this.setState({
       interactables: newObj,
-      floorPlan: updatedMap
+      floorPlan: updatedFloor
     });
   }
 
-  detectObjectCollision(obj, direction, mapSize) {
+  // Detects collisions between player (and also later monsters) and
+  // the environment / other interactable objects
+  detectObjectCollision(obj, floor, direction, mapSize) {
+    const playerObj = obj.player;
     if (direction == 'up') {
-      if (obj.y > 0 && obj.y < mapSize) {
-        obj.y--;
+      if (playerObj.y > 0 && playerObj.y < mapSize) {
+        if(!floor[playerObj.y - 1][playerObj.x].solid) {
+          playerObj.y--;
+        }
       }
     } else if (direction == 'down') {
-      if (obj.y > -1 && obj.y < mapSize - 1) {
-        obj.y++;
+      if (playerObj.y > -1 && playerObj.y < mapSize - 1) {
+        if(!floor[playerObj.y + 1][playerObj.x].solid) {
+          playerObj.y++;
+        }
       }
     } else if (direction == 'left') {
-      if (obj.x > 0 && obj.x < mapSize) {
-        obj.x--;
+      if (playerObj.x > 0 && playerObj.x < mapSize) {
+        if(!floor[playerObj.y][playerObj.x - 1].solid) {
+          playerObj.x--;
+        }
       }
     } else if (direction == 'right') {
-      if (obj.x > -1 && obj.x < mapSize - 1) {
-        obj.x++;
+      if (playerObj.x > -1 && playerObj.x < mapSize - 1) {
+        if(!floor[playerObj.y][playerObj.x + 1].solid) {
+          playerObj.x++;
+        }
       }
     }
 
@@ -122,11 +134,13 @@ class Game extends React.Component {
     const maxWidth = window.innerWidth - 1;
     const maxHeight = window.innerHeight - 1;
     maxWidth > maxHeight ?
+    // If the max width is more than the max height:
     this.setState({
       cvOffsetX: -(maxWidth - maxHeight) / 2,
       cvOffsetY: 0,
       cvWidth: maxHeight,
       cvHeight: maxHeight}) :
+    // Otherwise:
     this.setState({
       cvOffsetX: 0,
       cvOffsetY: -(maxHeight - maxWidth) / 2,
@@ -158,8 +172,7 @@ class Game extends React.Component {
           x: j,
           y: i,
           seen: false,
-          solid: false,
-          type: 'empty',
+          solid: true,
           fill: 'black'
         });
       }
@@ -264,27 +277,29 @@ class Game extends React.Component {
         row.map((tile, j) => {
           const x = tile.x;
           const y = tile.y;
-
-          grid[y][x].contains = 'floor';
+          grid[y][x].solid = false;
           grid[y][x].fill = 'white';
         })
       })
     });
 
-    // TODO Generate perfect maze with Prim's Algorithm, then remove the redundant
-    // dead ends to allow for a more random, flowing corridor system. After that,
-    // pick a random wall at a room to connect to a corridor.
+    // TODO Use Dijkstra's algorithm to solve the fastest route
+    // between two points, somehow assign weight to various points from
+    // rooms.
+
 
     // Starts the player in the center of a random room.
-    // TODO: Preferably have this happen in a separate function that can
-    // allow set spawns if I want them for the boss floor or anything else.
-    let newObj = JSON.parse(JSON.stringify(this.state.interactables));
     const spawnRoom = rmParams[this.getRandInt(0, rmParams.length-1)];
-    newObj.player.x = spawnRoom.x;
-    newObj.player.y = spawnRoom.y;
-    this.setState({interactables: newObj});
+    this.spawnPlayer(spawnRoom.x, spawnRoom.y);
 
     return grid;
+  }
+
+  spawnPlayer(x, y) {
+    let newObj = JSON.parse(JSON.stringify(this.state.interactables));
+    newObj.player.x = x;
+    newObj.player.y = y;
+    this.setState({interactables: newObj});
   }
 
   // Given a grid to work with, causes the player to

@@ -3,7 +3,9 @@ import {Rect} from 'react-konva';
 
 class Tile extends React.Component {
   shouldComponentUpdate(next) {
-    if (next.tile.seen == this.props.tile.seen) {
+    if (next.tile.seen == this.props.tile.seen &&
+        next.tileWidth === this.props.tileWidth &&
+        next.tileHeight === this.props.tileHeight) {
       return false;
     }
     return true;
