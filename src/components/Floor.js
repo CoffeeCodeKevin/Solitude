@@ -2,7 +2,7 @@ import React from 'react';
 import {Group} from 'react-konva';
 import Tile from './Tile';
 
-const Floor = ({floorPlan, cvHeight, cvWidth}) => {
+const Floor = ({floorPlan, cvHeight, cvWidth, fog}) => {
   const tileHeight = (1 / floorPlan.length) * cvHeight;
   const tileWidth = (1 / floorPlan.length) * cvWidth;
 
@@ -13,6 +13,7 @@ const Floor = ({floorPlan, cvHeight, cvWidth}) => {
         <Tile
           key={i+'tile'+j}
           tile={tile}
+          fog={fog}
           tileWidth={tileWidth}
           tileHeight={tileHeight} />
       );

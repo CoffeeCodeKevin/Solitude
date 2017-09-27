@@ -14,6 +14,12 @@ improve, with either this project or just my code in general.
 
 ## Changelist
 
+### 1.0.4 09/27/2017
+- Completely changed hallway generation, still sometimes has isolated rooms, though
+- Made fog of war toggle-able
+- Changed pattern of light emitted by player to be less rigid
+- Restructured player object state
+
 ### 1.0.3 09/23/2017
 - Defined the walls of each room
 - Found a pathfinding algorithm that seemed fast enough to be workable
@@ -39,9 +45,8 @@ improve, with either this project or just my code in general.
 - Set it to only update tiles when they become 'seen' by the player, massively increasing initial performance
 
 ## To do next
-- Finish or get working in basic form the function to fill the dungeon tiles with rooms,
-as well as connecting them
-- Create some stats and names for creatues and treasure to put into the state
+- Connect rooms such that no room is isolated.
+- Create some stats and names for creatures and treasure to put into the state
 - Look into ways to generate these creatures, as well as treasure onto the finished map
 - Look into basic AI patterns to follow player
 - Implement battling of creatures in some form
