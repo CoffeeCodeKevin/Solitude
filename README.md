@@ -14,8 +14,14 @@ improve, with either this project or just my code in general.
 
 ## Changelist
 
+### 1.0.5 09/28/2017
+- Reworked the way that fog works
+- Reworked the way the map is rendered
+- Created ID generation
+- Created both monster and treasure generation, both as objects and on the map
+
 ### 1.0.4 09/27/2017
-- Completely changed hallway generation, still sometimes has isolated rooms, though
+- Completely changed hallway generation (still sometimes has isolated rooms, though)
 - Made fog of war toggle-able
 - Changed pattern of light emitted by player to be less rigid
 - Restructured player object state

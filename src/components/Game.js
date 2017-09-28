@@ -5,6 +5,9 @@ import {Grid, BiDijkstraFinder} from 'pathfinding';
 
 import Floor from './Floor';
 import Player from './Player';
+import Treasure from './Treasure';
+import Monsters from './Monsters';
+import Fog from './Fog';
 import ButtonContainer from './ButtonContainer';
 
 class Game extends React.Component {
@@ -20,6 +23,7 @@ class Game extends React.Component {
       fog: true,
       mapSize: 50,
       floorPlan: [],
+      floorNumber: 1,
       player: {
         stats: {
           hp: 100,
@@ -29,6 +33,8 @@ class Game extends React.Component {
         x: 0,
         y: 0
       },
+      treasureList: [],
+      monsterList: [],
       names: {
         weapons: {
           types: ['Axe', 'Sword', 'Daggers', 'Rod', 'Hammer'],
@@ -198,7 +204,7 @@ class Game extends React.Component {
     const width = this.state.mapSize;
     const height = this.state.mapSize;
     const roomsToGen = this.getRandInt(12, 17);
-    const enemiesToGen = this.getRandInt(10, 20);
+    const monstersToGen = this.getRandInt(10, 20);
     const treasureToGen = this.getRandInt(3, 8);
     const maxRoomSize = 10;
     const minRoomSize = 6;
@@ -283,16 +289,40 @@ class Game extends React.Component {
     });
 
     // Fills the now generated rooms on the map and defines them as floor tiles.
-    rooms.map((room, rmId) => {
-      // Allows identification of room attached to pathfindStarts
-      room.map((row, i) => {
-        row.map((tile, j) => {
+    rooms.map((room) => {
+      room.map((row) => {
+        row.map((tile) => {
           const x = tile.x;
           const y = tile.y;
           grid[y][x].solid = false;
         });
       });
     });
+
+    // Generates treasure and places on map
+    let treasureList = [];
+    for (let i = 0; i < treasureToGen; i++) {
+      const room = rooms[Math.floor(Math.random()*rooms.length)];
+      const row = room[Math.floor(Math.random()*room.length)];
+      const tile = row[Math.floor(Math.random()*row.length)]
+      const treasure = this.generateTreasure(tile.x, tile.y);
+      grid[tile.y][tile.x].contains = treasure;
+      treasureList.push(treasure)
+    }
+
+    // Generates monsters and places on map
+
+    let monsterList = [];
+    for (let i = 0; i < monstersToGen; i++) {
+      const room = rooms[Math.floor(Math.random()*rooms.length)];
+      const row = room[Math.floor(Math.random()*room.length)];
+      const tile = row[Math.floor(Math.random()*row.length)]
+      const monster = this.generateMonster(tile.x, tile.y);
+      grid[tile.y][tile.x].contains = monster;
+      monsterList.push(monster)
+    }
+
+    this.setState({treasureList: treasureList, monsterList: monsterList});
 
     // Use Dijkstra's algorithm to connect each room to x random rooms,
     // where x is equal to the hall density that is set.
@@ -377,6 +407,44 @@ class Game extends React.Component {
     return grid;
   }
 
+  // OBJECT AND ID GENERATION
+
+  generateTreasure(x, y) {
+    return {
+      type: 'treasure',
+      id: this.generateUUID(),
+      content: {
+        dropCount: this.getRandInt(1, this.state.floorNumber),
+        x: x,
+        y: y
+      }
+    };
+  }
+
+  generateMonster(x, y) {
+    const modifier = Math.random() * 2 * this.state.floorNumber;
+
+    return {
+      type: 'monster',
+      id: this.generateUUID(),
+      content: {
+        stats: {
+          hp: 20 * modifier,
+          atk: 5 * modifier,
+          def: 2 * modifier
+        },
+        x: x,
+        y: y
+      }
+    }
+  }
+
+  generateUUID() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    )
+  }
+
   // LOOT DROPS
 
   // Used to determine what a random drop is for the player.
@@ -425,8 +493,7 @@ class Game extends React.Component {
             <Floor
               cvHeight={this.state.cvHeight}
               cvWidth={this.state.cvWidth}
-              floorPlan={this.state.floorPlan}
-              fog={this.state.fog} />
+              floorPlan={this.state.floorPlan} />
           </Layer>
           <Layer>
             <Group>
@@ -435,7 +502,24 @@ class Game extends React.Component {
                 player={this.state.player}
                 cvHeight={this.state.cvHeight}
                 cvWidth={this.state.cvWidth} />
+              <Treasure
+                mapSize={this.state.mapSize}
+                treasureList={this.state.treasureList}
+                cvHeight={this.state.cvHeight}
+                cvWidth={this.state.cvWidth} />
+              <Monsters
+                mapSize={this.state.mapSize}
+                monsterList={this.state.monsterList}
+                cvHeight={this.state.cvHeight}
+                cvWidth={this.state.cvWidth} />
             </Group>
+          </Layer>
+          <Layer>
+            <Fog
+              cvHeight={this.state.cvHeight}
+              cvWidth={this.state.cvWidth}
+              floorPlan={this.state.floorPlan}
+              fog={this.state.fog} />
           </Layer>
         </Stage>
         <ButtonContainer toggleFog={this.toggleFog} />
